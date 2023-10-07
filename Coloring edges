@@ -1,0 +1,53 @@
+import cv2 as cv
+import numpy as np
+from google.colab.patches import cv2_imshow
+
+def edges_direction(img):  
+    #nahraje obrazek
+    #img = cv.imread('lena.png')
+    #prevede obrazek do odstinu sedi
+    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    #gaussovske rozmazani
+    blurred = cv.GaussianBlur(gray, (3, 3), 0)
+    #spocita mi hodnoty ze sobelovy metody
+    g_x = cv.Sobel(blurred, cv.CV_64F, 1, 0, ksize=3)
+    g_y = cv.Sobel(blurred, cv.CV_64F, 0, 1, ksize=3)
+    #spocita parametry G a uhel ze sobelovy metody
+    gradient_magnitude = np.sqrt(g_x**2 + g_y**2)
+    gradient_magnitude2 = gradient_magnitude / gradient_magnitude.max() * 255
+    gradient_direction = np.arctan2(g_y, g_x) 
+    #vytvori mi obrazek pouze s hranami
+    threshold_value = 50
+    edges = cv.threshold(gradient_magnitude2, threshold_value, 255, cv.THRESH_BINARY)[1]
+    #tahle cast kodu priradi barvu ruznym smerum
+    vyska = img.shape[0]
+    sirka = img.shape[1]
+    Z = np.zeros((vyska, sirka, 3), dtype=np.int32)
+    angle = gradient_direction * 180. / np.pi
+    angle[angle < 0] += 180 
+    for i in range(1, vyska - 1):
+        for j in range(1, sirka - 1):
+            #cislo v podmince je threshold pro cerne pozadi
+            if (edges[i,j] < 166):
+                continue
+            #angle 0
+            if (0 <= angle[i,j] < 22.5) or (157.5 <= angle[i,j] <= 180):     
+                Z[i,j,2]=255
+            #angle 45
+            elif (22.5 <= angle[i,j] < 67.5):
+                Z[i,j,0]=255
+                Z[i,j,2]=255  
+                Z[i,j,1]=255
+            #angle 90
+            elif (67.5 <= angle[i,j] < 112.5):
+                Z[i,j,0]=255
+            #angle 135
+            elif (112.5 <= angle[i,j] < 157.5):
+                Z[i,j,0]=255  
+    return Z
+
+img = cv.imread('lena.png')
+#gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+#cv2_imshow(img)
+vysledny_obrazek = edges_direction(img)
+plt.imshow(vysledny_obrazek)
